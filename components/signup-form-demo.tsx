@@ -1,18 +1,69 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import {
-  IconBrandGithub,
-  IconBrandGoogle,
-  IconBrandOnlyfans,
-} from "@tabler/icons-react";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function SignupFormDemo() {
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("Form submitted");
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    const formData = new FormData(e.currentTarget);
+    const firstName = String(formData.get("firstname")).trim();
+    const lastName = String(formData.get("lastname")).trim();
+    const email = String(formData.get("email")).trim();
+    const password = String(formData.get("password"));
+    const confirmPassword = String(formData.get("confirm-password"));
+
+    if (password !== confirmPassword) {
+      setErrorMessage("Passwords do not match.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/verify`,
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+          },
+        },
+      });
+
+      if (error) {
+        setErrorMessage(error.message);
+        return;
+      }
+
+      if (!data.user) {
+        setErrorMessage("We could not create your account. Please try again.");
+        return;
+      }
+
+      router.push("/verify");
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "We could not create your account. Please try again.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   return (
     <section className="mx-auto grid w-full max-w-5xl gap-8 rounded-3xl border border-white/15 bg-transparent p-5 sm:p-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-14 lg:p-12">
@@ -40,9 +91,11 @@ export default function SignupFormDemo() {
             <Input
               className="!bg-white/10 !text-white placeholder:!text-neutral-400 focus-visible:!ring-white/50"
               id="firstname"
+              name="firstname"
               autoComplete="given-name"
               placeholder="Tyler"
               type="text"
+              required
             />
           </LabelInputContainer>
           <LabelInputContainer>
@@ -55,9 +108,11 @@ export default function SignupFormDemo() {
             <Input
               className="!bg-white/10 !text-white placeholder:!text-neutral-400 focus-visible:!ring-white/50"
               id="lastname"
+              name="lastname"
               autoComplete="family-name"
               placeholder="Durden"
               type="text"
+              required
             />
           </LabelInputContainer>
         </div>
@@ -71,9 +126,11 @@ export default function SignupFormDemo() {
           <Input
             className="!bg-white/10 !text-white placeholder:!text-neutral-400 focus-visible:!ring-white/50"
             id="email"
+            name="email"
             autoComplete="email"
             placeholder="projectmayhem@fc.com"
             type="email"
+            required
           />
         </LabelInputContainer>
         <LabelInputContainer className="mb-5">
@@ -86,9 +143,11 @@ export default function SignupFormDemo() {
           <Input
             className="!bg-white/10 !text-white placeholder:!text-neutral-400 focus-visible:!ring-white/50"
             id="password"
+            name="password"
             autoComplete="new-password"
             placeholder="••••••••"
             type="password"
+            required
           />
         </LabelInputContainer>
         <LabelInputContainer className="mb-6">
@@ -101,51 +160,32 @@ export default function SignupFormDemo() {
           <Input
             className="!bg-white/10 !text-white placeholder:!text-neutral-400 focus-visible:!ring-white/50"
             id="confirm-password"
+            name="confirm-password"
             autoComplete="new-password"
             placeholder="••••••••"
             type="password"
+            required
           />
         </LabelInputContainer>
+        {errorMessage && (
+          <p className="mb-4 text-sm text-red-300" role="alert">
+            {errorMessage}
+          </p>
+        )}
+        {successMessage && (
+          <p className="mb-4 text-sm text-emerald-300" role="status">
+            {successMessage}
+          </p>
+        )}
         <button
+          aria-busy={isSubmitting}
+          disabled={isSubmitting}
           className="group/btn relative block h-12 w-full rounded-xl bg-white font-semibold text-neutral-950 transition hover:bg-neutral-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950"
           type="submit"
         >
-          Sign up &rarr;
+          {isSubmitting ? "Creating account..." : "Sign up →"}
           <BottomGradient />
         </button>
-
-        <div className="my-6 flex items-center gap-4 text-xs font-medium text-neutral-400">
-          <span className="h-px flex-1 bg-white/20" />
-          Or continue with
-          <span className="h-px flex-1 bg-white/20" />
-        </div>
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <button
-            className="group/btn relative flex h-11 w-full items-center justify-center gap-3 rounded-xl border border-white/15 bg-white/5 px-4 font-medium text-neutral-100 transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-            type="button"
-          >
-            <IconBrandGithub className="h-4 w-4 text-neutral-100" />
-            <span className="text-sm">GitHub</span>
-            <BottomGradient />
-          </button>
-          <button
-            className="group/btn relative flex h-11 w-full items-center justify-center gap-3 rounded-xl border border-white/15 bg-white/5 px-4 font-medium text-neutral-100 transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-            type="button"
-          >
-            <IconBrandGoogle className="h-4 w-4 text-neutral-100" />
-            <span className="text-sm">Google</span>
-            <BottomGradient />
-          </button>
-          <button
-            className="group/btn relative flex h-11 w-full items-center justify-center gap-3 rounded-xl border border-white/15 bg-white/5 px-4 font-medium text-neutral-100 transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-            type="button"
-          >
-            <IconBrandOnlyfans className="h-4 w-4 text-neutral-700" />
-            <span className="text-sm">OnlyFans</span>
-            <BottomGradient />
-          </button>
-        </div>
       </form>
     </section>
   );
