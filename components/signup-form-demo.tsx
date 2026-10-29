@@ -1,13 +1,13 @@
 "use client";
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabaseClient";
 
+const siteUrl = "https://tasty-form.vercel.app";
+
 export default function SignupFormDemo() {
-  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -36,7 +36,7 @@ export default function SignupFormDemo() {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/verify`,
+          emailRedirectTo: `${siteUrl}/verify`,
           data: {
             first_name: firstName,
             last_name: lastName,
@@ -54,7 +54,7 @@ export default function SignupFormDemo() {
         return;
       }
 
-      router.push("/verify");
+      window.location.assign(`${siteUrl}/verify`);
     } catch (error) {
       setErrorMessage(
         error instanceof Error
